@@ -373,9 +373,16 @@ this.state = {
     xhr.send();
     xhr.onload = function processRequest(e){
       var response = JSON.parse(xhr.responseText);
+      for(var i = 0 ; i < response.items.length; i++){
 
+      albumtracklist.push(response.items[i].name);
+      this.setState({
+        albumTrackList: {tracklist: this.state.albumTrackList.tracklist.concat(response.items[i].name)},
+        
+      });
     }
-  }
+  }.bind(this)
+}
   getPopularityForLabel(){
   var xhr = new XMLHttpRequest();
   xhr.open('GET', 'https://api.spotify.com/v1/albums/' + globalID);
@@ -400,26 +407,28 @@ this.state = {
  var listofAlbumPop = this.state.albumPopList.albumPops;
  var currentTracksList = this.state.albumTrackList.tracklist;
  var i;
+ var iter = 0;
  for(i = 0; i < listofAlbumsFromLabel.length;i++){
   
    var currentAlbumID = listofAlbumsFromLabel[i].id;
    globalID = currentAlbumID;
    
    this.getPopularityForLabel();
-   
+   this.getAlbumTracks();
    var currentArtist = listofAlbumsFromLabel[i].artists[0].name;
    var currentAlbumImages = listofAlbumsFromLabel[i].images;
    var currentAlbumName = listofAlbumsFromLabel[i].name;
    var currentAlbumPop = listofAlbumPop[i];
- 
+   var currentAMT = //make a list of current amt of tracks
    labelAlbums.labelAlbumList.push({
      "id" : currentAlbumID,
      "images" : currentAlbumImages,
      "artist":  currentArtist,
      "album name" : currentAlbumName,
      "popularity" : currentAlbumPop,
-     "tracks" : currentTrackList
+     "tracks" : currentTracksList
    });
+    // reset it.
    
  }
  console.log(labelAlbums);
