@@ -1,0 +1,708 @@
+import React, { Component } from 'react';
+import './App.css';
+import SpotifyWebApi from 'spotify-web-api-js';
+const spotifyApi = new SpotifyWebApi();
+console.log(this.access_token);
+class App extends Component {
+
+  constructor(){
+    super();
+    const params = this.getHashParams();
+    const token = params.access_token;
+    if (token) {
+      spotifyApi.setAccessToken(token);
+    }
+    this.state = {
+      loggedIn: token ? true : false,
+      nowPlaying: { name: 'Not Checked', albumArt: '' },
+      albums: {albumlist: []},
+      information: {},
+      trackfeature: {},
+      hipster: {},
+      artistGenre: {},
+      recommendedTrack: {},
+      somegenre: {}
+
+    }
+  }
+  getHashParams() {
+    var hashParams = {};
+    var e, r = /([^&;=]+)=?([^&;]*)/g,
+        q = window.location.hash.substring(1);
+    e = r.exec(q)
+    while (e) {
+       hashParams[e[1]] = decodeURIComponent(e[2]);
+       e = r.exec(q);
+    }
+    return hashParams;
+  }
+  
+  getNowPlaying(){
+    spotifyApi.getMyCurrentPlayingTrack()
+      .then((response) => {
+        this.setState({
+          nowPlaying: { 
+              name: response.item.name, 
+              albumArt: response.item.album.images[0].url,
+              artist: response.item.artists[0].name,
+              albumName: response.item.album.name,
+              artistId: response.item.artists[0].id,
+              trackId: response.item.id,
+              albumID: response.item.album
+            }
+        });
+      })
+    
+  }
+  getTrackInfo(){
+    spotifyApi.getAudioAnalysisForTrack(this.state.nowPlaying.trackId)
+    .then((response) =>{
+      this.setState({
+        information:{
+          tempo: response.track.tempo,
+          tempoconfidence: response.track.tempo_confidence,
+          key: response.track.key,
+          mode: response.track.mode
+
+        }
+      })
+    })
+  }
+  getArtistInfo(){
+    spotifyApi.getArtist(this.state.nowPlaying.artistId)
+      .then((response) =>{
+        this.setState({
+          artistGenre:{
+            genre: response.genres
+          }
+        })
+      })
+  }
+  getTrackFeatures(){
+    spotifyApi.getAudioFeaturesForTrack(this.state.nowPlaying.trackId)
+    .then((response) =>{
+      this.setState({
+        trackfeature:{
+          dance: response.danceability,
+          acoustic: response.acousticness,
+          energy: response.energy,
+          valence: response.valence
+        }
+      })
+    })
+  }
+  getGenres(){
+    spotifyApi.getAlbum()
+    .then((response) =>{
+      this.setState({
+        somegenre:{
+          genre: response.genres
+        }
+
+      });
+
+      
+    });
+
+  }
+  getPopularity(){
+    spotifyApi.getTrack(this.state.nowPlaying.trackId)
+    .then((response) =>{
+      this.setState({
+        hipster:{
+          popular:response.popularity
+        }
+      })
+    })
+  }
+  getCurrentArtistAlbums(){
+    spotifyApi.getArtistAlbums(this.state.nowPlaying.artistId)
+    .then((response) =>{
+      this.setState({
+        albums: {
+          albumlist:  [response.items[0].name]
+        }
+        }  
+      );
+        console.log((this.state.albums));
+       
+    
+    });
+    
+      }
+  getARecommendedTrack(){
+    spotifyApi.getRecommendations({
+      seed_tracks : this.state.nowPlaying.trackId,
+      max_popularity : 50
+     
+    })
+    .then((response) =>{
+      this.setState({
+        recommendedTrack: {
+          trackname : response.tracks[0].name,
+          artist: response.tracks[0].artists[0].name
+         
+        }
+      });
+
+    });
+
+  
+
+  }
+  revealTrackName() {
+    document.getElementById('Track Name').style.display = 'block';
+  }
+  
+    
+  
+  
+
+  render() {
+    return (
+      <div className="App">
+        <a href='http://localhost:8888' > Login to Spotify </a>
+
+       
+        <div id="Track Name" style={{display:'none'}}>
+          Now Playing: { this.state.nowPlaying.name }
+        </div> 
+        <div>
+          Artist: {this.state.nowPlaying.artist }
+        </div>
+        <div>
+          Album: {this.state.nowPlaying.albumName}
+        </div>
+        <div>
+          <img src={this.state.nowPlaying.albumArt} style={{ height: 250 }}/>
+        </div>
+
+        <div>
+          Track Tempo : {this.state.information.tempo} 
+        </div>
+        <div>
+          Tempo Confidence: {this.state.information.tempoconfidence}
+        </div>
+        <div>
+          Key: {this.state.information.key }
+        </div>
+        <div>
+          Mode: {this.state.information.mode}
+        </div>
+         <div>
+          Dance: {this.state.trackfeature.dance }
+        </div>
+        <div>
+          Acoustics: {this.state.trackfeature.acoustic }
+        </div>
+        <div>
+          Energy: {this.state.trackfeature.energy }
+        </div>
+        <div>
+          Valence {this.state.trackfeature.valence}
+        </div>
+        <div>
+          Popularity {this.state.hipster.popular }
+        </div>
+        <div>
+          Genre {this.state.artistGenre.genre }
+        </div>
+        <div>
+          recommendedTrack {this.state.recommendedTrack.trackname}
+        </div>
+        <div>
+          artist {this.state.recommendedTrack.artist}
+        </div>
+        
+        { this.state.loggedIn &&
+          <button onClick={() => this.getNowPlaying()}>
+            Check Now Playing
+          </button>
+        }
+        <br></br>
+         {/* { this.state.loggedIn &&
+          <button onClick={() => this.getCurrentArtistAlbums()}>
+            Get Artist Albums
+          </button>
+        } */}
+        <br></br>
+        { this.state.loggedIn &&
+          <button onClick={() => this.getTrackInfo() & this.getCurrentArtistAlbums() & this.getTrackFeatures()& this.getPopularity() & this.getGenres() & this.getArtistInfo() & this.getARecommendedTrack()}>
+            Get Info
+          </button>
+        }
+        
+        
+     
+      
+      </div>
+    );
+  }
+  
+
+
+}
+
+export default App;
+
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------
+
+import React, { Component } from 'react';
+import './App.css';
+import SpotifyWebApi from 'spotify-web-api-js';
+
+const spotifyApi = new SpotifyWebApi();
+const params = getHashParams();
+const token = params.access_token;
+  // Might not need this class...
+// class Retrieve extends React.Component {
+
+
+
+  this.state = {
+    loggedIn: token ? true : false,
+    nowPlaying: { name: 'Not Checked', albumArt: '' },
+    information: {},
+    trackFeatures: {},
+    trackPopularity: {},
+    artistInfo: {},
+    recommend: {},
+    //    var currentTrackID = this.state.nowPlaying.trackId;
+  }
+
+  function getHashParams() {
+    var hashParams = {};
+    var e, r = /([^&;=]+)=?([^&;]*)/g,
+        q = window.location.hash.substring(1);
+    e = r.exec(q)
+    while (e) {
+       hashParams[e[1]] = decodeURIComponent(e[2]);
+       e = r.exec(q);
+    }
+    return hashParams;
+  }
+  function getNowPlaying(mytoken){
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET','https://api.spotify.com/v1/me/player/currently-playing');
+    xhr.setRequestHeader('Accept','application/json');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + mytoken);
+    xhr.send();
+    xhr.onload = function processsRequest(e){
+      var response = JSON.parse(xhr.responseText);
+      this.setState({
+        nowPlaying: {
+          name: response.item.name, 
+              albumArt: response.item.album.images[0].url,
+              artist: response.item.artists[0].name,
+              albumName: response.item.album.name,
+              artistId: response.item.artists[0].id,
+              trackId: response.item.id,
+              albumID: response.item.album
+        }
+      
+    });
+  }.bind(this)
+  }
+  function getTrackInfo(mytoken,currentTrackID){
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', "https://api.spotify.com/v1/audio-analysis/"+currentTrackID);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + mytoken);
+    xhr.send();
+
+    xhr.onload = function processRequest(e){
+      var response = JSON.parse(xhr.responseText);
+      this.setState({
+        information:{
+                tempo: response.track.tempo,
+                tempoconfidence: response.track.tempo_confidence,
+                key: response.track.key,
+                mode: response.track.mode
+        }
+      });
+    }.bind(this)
+  }
+  function getArtistInfo(mytoken){
+    var currentArtistID = this.state.nowPlaying.artistId;
+    var mytoken = this.getHashParams().access_token;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', "https://api.spotify.com/v1/artists/"+currentArtistID);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + mytoken);
+    xhr.send();
+
+    xhr.onload = function processRequest(e){
+      var response = JSON.parse(xhr.responseText);
+      this.setState({
+        artistInfo:{
+                genre: response.genres
+        }
+      });
+    }.bind(this)
+  }
+  function getTrackFeatures(mytoken){
+    var currentTrackID = this.state.nowPlaying.trackId;
+    var mytoken = this.getHashParams().access_token;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET','	https://api.spotify.com/v1/audio-features/'+currentTrackID);
+    xhr.setRequestHeader('Accept','application/json');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + mytoken);
+    xhr.send();
+    xhr.onload = function processRequest(e){
+      var response = JSON.parse(xhr.responseText);
+      this.setState({
+        trackFeatures:{
+          dance: response.danceability,
+          acoustic: response.acousticness,
+          energy: response.energy,
+         valence: response.valence
+        }
+      });
+    }.bind(this)
+    
+  }
+  function getPopularity(mytoken){
+    var currentTrackID = this.state.nowPlaying.trackId;
+    var mytoken = this.getHashParams().access_token;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', "https://api.spotify.com/v1/tracks/"+currentTrackID);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + mytoken);
+    xhr.send();
+
+    xhr.onload = function processRequest(e){
+      var response = JSON.parse(xhr.responseText);
+      this.setState({
+        trackPopularity:{
+                popular:response.popularity
+        }
+      });
+    }.bind(this)
+  }
+  function getARecommendedTrack(mytoken){
+    var currentTrackID = this.state.nowPlaying.trackId;
+  
+    var mytoken = this.getHashParams().access_token;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://api/spotify.com/v1/recommendations?seed_tracks='+currentTrackID);
+    xhr.setRequestHeader('Accept','application/json');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + mytoken);
+    xhr.send();
+    xhr.onload = function processRequest(e){
+      var response = JSON.parse(xhr.responseText);
+      this.setState({
+        recommend: {
+          trackname : response.tracks[0].name,
+          artist: response.tracks[0].artists[0].name
+        }
+      });
+
+    }.bind(this)
+  }
+  function revealTrackName(mytoken) {
+    document.getElementById('Track Name').style.display = 'block';
+  }
+  
+  
+
+class App extends React.Component{
+constructor(){
+super();
+if (token) {
+  spotifyApi.setAccessToken(token);
+}
+
+}
+
+  render(){
+    return (
+        <div className="App">
+           <a href='http://localhost:8888' > Login to Spotify </a>
+
+           <div>
+            Now Playing: { this.state.nowPlaying.name }
+           </div> 
+           <br></br>
+           { this.state.loggedIn &&
+          <button onClick={() => getNowPlaying(getHashParams().access_token)}>
+            Get Info
+          </button>
+        }
+        </div>
+    );
+  }
+}
+
+
+export default App;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{
+  "tracks": [
+    {
+      "album": {
+        "album_type": "ALBUM",
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/5wZOrGWdg4hq7KIRMupJdI"
+            },
+            "href": "https://api.spotify.com/v1/artists/5wZOrGWdg4hq7KIRMupJdI",
+            "id": "5wZOrGWdg4hq7KIRMupJdI",
+            "name": "Lone",
+            "type": "artist",
+            "uri": "spotify:artist:5wZOrGWdg4hq7KIRMupJdI"
+          }
+        ],
+        "available_markets": [
+          "AD",
+          "AE",
+          "AR",
+          "AT",
+          "AU",
+          "BE",
+          "BG",
+          "BH",
+          "BO",
+          "BR",
+          "CA",
+          "CH",
+          "CL",
+          "CO",
+          "CR",
+          "CY",
+          "CZ",
+          "DE",
+          "DK",
+          "DO",
+          "DZ",
+          "EC",
+          "EE",
+          "EG",
+          "ES",
+          "FI",
+          "FR",
+          "GB",
+          "GR",
+          "GT",
+          "HK",
+          "HN",
+          "HU",
+          "ID",
+          "IE",
+          "IL",
+          "IN",
+          "IS",
+          "IT",
+          "JO",
+          "JP",
+          "KW",
+          "LB",
+          "LI",
+          "LT",
+          "LU",
+          "LV",
+          "MA",
+          "MC",
+          "MT",
+          "MX",
+          "MY",
+          "NI",
+          "NL",
+          "NO",
+          "NZ",
+          "OM",
+          "PA",
+          "PE",
+          "PH",
+          "PL",
+          "PS",
+          "PT",
+          "PY",
+          "QA",
+          "RO",
+          "SA",
+          "SE",
+          "SG",
+          "SK",
+          "SV",
+          "TH",
+          "TN",
+          "TR",
+          "TW",
+          "US",
+          "UY",
+          "VN",
+          "ZA"
+        ],
+        "external_urls": {
+          "spotify": "https://open.spotify.com/album/3sXeIEQyUk3rLSzlNnfbcD"
+        },
+        "href": "https://api.spotify.com/v1/albums/3sXeIEQyUk3rLSzlNnfbcD",
+        "id": "3sXeIEQyUk3rLSzlNnfbcD",
+        "images": [
+          {
+            "height": 640,
+            "url": "https://i.scdn.co/image/3805c3be21bc0b06e899fbde153c58f06ff00aa6",
+            "width": 640
+          },
+          {
+            "height": 300,
+            "url": "https://i.scdn.co/image/7064d6cfef4153623700e5eaa5f9590846441451",
+            "width": 300
+          },
+          {
+            "height": 64,
+            "url": "https://i.scdn.co/image/c73f6ca827dd0cc8447a491fc23b8b99180ab811",
+            "width": 64
+          }
+        ],
+        "name": "Temples",
+        "release_date": "2018-01-10",
+        "release_date_precision": "day",
+        "total_tracks": 0,
+        "type": "album",
+        "uri": "spotify:album:3sXeIEQyUk3rLSzlNnfbcD"
+      },
+      "artists": [
+        {
+          "external_urls": {
+            "spotify": "https://open.spotify.com/artist/5wZOrGWdg4hq7KIRMupJdI"
+          },
+          "href": "https://api.spotify.com/v1/artists/5wZOrGWdg4hq7KIRMupJdI",
+          "id": "5wZOrGWdg4hq7KIRMupJdI",
+          "name": "Lone",
+          "type": "artist",
+          "uri": "spotify:artist:5wZOrGWdg4hq7KIRMupJdI"
+        }
+      ],
+      "available_markets": [
+        "AD",
+        "AE",
+        "AR",
+        "AT",
+        "AU",
+        "BE",
+        "BG",
+        "BH",
+        "BO",
+        "BR",
+        "CA",
+        "CH",
+        "CL",
+        "CO",
+        "CR",
+        "CY",
+        "CZ",
+        "DE",
+        "DK",
+        "DO",
+        "DZ",
+        "EC",
+        "EE",
+        "EG",
+        "ES",
+        "FI",
+        "FR",
+        "GB",
+        "GR",
+        "GT",
+        "HK",
+        "HN",
+        "HU",
+        "ID",
+        "IE",
+        "IL",
+        "IN",
+        "IS",
+        "IT",
+        "JO",
+        "JP",
+        "KW",
+        "LB",
+        "LI",
+        "LT",
+        "LU",
+        "LV",
+        "MA",
+        "MC",
+        "MT",
+        "MX",
+        "MY",
+        "NI",
+        "NL",
+        "NO",
+        "NZ",
+        "OM",
+        "PA",
+        "PE",
+        "PH",
+        "PL",
+        "PS",
+        "PT",
+        "PY",
+        "QA",
+        "RO",
+        "SA",
+        "SE",
+        "SG",
+        "SK",
+        "SV",
+        "TH",
+        "TN",
+        "TR",
+        "TW",
+        "US",
+        "UY",
+        "VN",
+        "ZA"
+      ],
+      "disc_number": 1,
+      "duration_ms": 452983,
+      "explicit": false,
+      "external_ids": {
+        "isrc": "BEZ351800015"
+      },
+      "external_urls": {
+        "spotify": "https://open.spotify.com/track/3PNBqhwIvaXmZYbwLTQd2A"
+      },
+      "href": "https://api.spotify.com/v1/tracks/3PNBqhwIvaXmZYbwLTQd2A",
+      "id": "3PNBqhwIvaXmZYbwLTQd2A",
+      "is_local": false,
+      "name": "Temples",
+      "popularity": 26,
+      "preview_url": "https://p.scdn.co/mp3-preview/92ac42a4db0f1fd921ca30e5e490ec9c2ee0f62e?cid=774b29d4f13844c495f206cafdad9c86",
+      "track_number": 1,
+      "type": "track",
+      "uri": "spotify:track:3PNBqhwIvaXmZYbwLTQd2A"
+    }
+  ],
+  "seeds": [
+    {
+      "initialPoolSize": 249,
+      "afterFilteringSize": 249,
+      "afterRelinkingSize": 249,
+      "id": "0UDuoGWZT0bRKBYxKqk6Jh",
+      "type": "TRACK",
+      "href": "https://api.spotify.com/v1/tracks/0UDuoGWZT0bRKBYxKqk6Jh"
+    }
+  ]
+}
