@@ -3,7 +3,9 @@ import React, { Component } from 'react';
 import './App.css';
 import SpotifyWebApi from 'spotify-web-api-js';
 import Player from "./Player";
-
+labelAlbums = {
+  labelAlbumList : []
+};
 var globalID;
 var tracksleftinlabel;
 var totaltracksinlabel;
@@ -335,21 +337,11 @@ this.state = {
       var response = JSON.parse(xhr.responseText);
      
       for(var i = 0 ; i < response.albums.items.length; i++){
-   
+        
         allalbums.push(response.albums.items[i]);
       }
-      
-    //   this.setState({
-    //   albumsFromLabel:{
-    //     albumlist: response
-    //   }
-    // });
     
     offset +=50;
-
-
-    console.log(allalbums);
-    console.log(allalbums.length);
    if (totaltracksinlabel > 50 ){
      
      totaltracksinlabel -= 50;
@@ -377,8 +369,7 @@ this.state = {
 
       albumtracklist.push(response.items[i].name);
       this.setState({
-        albumTrackList: {tracklist: this.state.albumTrackList.tracklist.concat(response.items[i].name)},
-        
+        albumTrackList: {tracklist: this.state.albumTrackList.tracklist.concat(response.items[i])}
       });
     }
   }.bind(this)
@@ -394,21 +385,20 @@ this.state = {
     var response = JSON.parse(xhr.responseText);
     poplist.push(response.popularity)
     this.setState({
-      albumPopList:{albumPops: this.state.albumPopList.albumPops.concat(response.popularity) },
-
+      albumPopList:{albumPops: this.state.albumPopList.albumPops.concat(response.popularity) }
+      // albumTrackAMT: {AMT : this.state.albumTrackAMT.AMT.concat(response.total_tracks)}
     });
   }.bind(this)
   }
   getNewJSONTags(){
-  labelAlbums = {
-    labelAlbumList : []
-  };
+  
  var listofAlbumsFromLabel = allalbums;
  var listofAlbumPop = this.state.albumPopList.albumPops;
  var currentTracksList = this.state.albumTrackList.tracklist;
- var i;
+ console.log(listofAlbumsFromLabel);
+labelAlbums.labelAlbumList = [];
  var iter = 0;
- for(i = 0; i < listofAlbumsFromLabel.length;i++){
+ for(var i = 0; i < listofAlbumsFromLabel.length;i++){
   
    var currentAlbumID = listofAlbumsFromLabel[i].id;
    globalID = currentAlbumID;
@@ -419,21 +409,35 @@ this.state = {
    var currentAlbumImages = listofAlbumsFromLabel[i].images;
    var currentAlbumName = listofAlbumsFromLabel[i].name;
    var currentAlbumPop = listofAlbumPop[i];
-   var currentAMT = //make a list of current amt of tracks
+   var currentnumbertracks = listofAlbumsFromLabel[i].total_tracks;
+
+  
    labelAlbums.labelAlbumList.push({
      "id" : currentAlbumID,
      "images" : currentAlbumImages,
      "artist":  currentArtist,
      "album name" : currentAlbumName,
      "popularity" : currentAlbumPop,
-     "tracks" : currentTracksList
+     "tracks" : currentTracksList.slice(iter,currentnumbertracks+iter)
+
    });
+   iter += currentnumbertracks
     // reset it.
    
  }
  console.log(labelAlbums);
   }
 
+  
+
+
+  getOtherTrackInfo(){
+    var iter = 0;
+    for(var i = 0 ; i < labelAlbums.labelAlbumList.length;i++){
+      console.log(labelAlbums.labelAlbumList[i].id.splice())
+
+    }
+  }
 }
 
 
@@ -544,10 +548,10 @@ class App extends Retrieve{
         </button>
 
          <button onClick={() => console.log(this.state.albumPopList.albumPops)}>
-          Click
+          Get label album popularity
         </button>
         <button onClick={() => console.log(sortByPopularity(labelAlbums.labelAlbumList))}>
-          Click
+          Sort albums by popularity
         </button>
 
        
